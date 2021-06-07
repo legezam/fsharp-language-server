@@ -8,7 +8,7 @@ import * as path from 'path';
 import * as fs from "fs";
 import * as cp from 'child_process';
 import { window, workspace, ExtensionContext, Progress, Range, commands, tasks, Task, TaskExecution, ShellExecution, Uri, TaskDefinition, debug } from 'vscode';
-import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind, NotificationType } from 'vscode-languageclient';
+import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind, NotificationType } from 'vscode-languageclient/node';
 
 // Run using `dotnet` instead of self-contained executable
 const debugMode = false;
@@ -218,7 +218,7 @@ function createProgressListeners(client: LanguageClient) {
 }
 
 function binName(): string {
-	var baseParts = ['src', 'FSharpLanguageServer', 'bin', 'Release', 'netcoreapp3.0'];
+	var baseParts = ['src', 'FSharpLanguageServer', 'bin', 'Release', 'net5.0'];
 	var pathParts = getPathParts(process.platform);
 	var fullParts = baseParts.concat(pathParts);
 

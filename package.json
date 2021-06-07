@@ -1,11 +1,11 @@
 {
-    "name": "fsharp-language-server",
-    "displayName": "F# Language Server",
-    "description": "F# Language Support using FSharp Compiler Services",
-    "author": "George Fraser",
+    "name": "fsharp-language-server2",
+    "displayName": "F# Language Server2",
+    "description": "F# Language Support using FSharp Compiler Services2",
+    "author": "George Fraser2",
     "license": "MIT",
     "icon": "Icon512.png",
-    "version": "0.1.27",
+    "version": "9.9.99",
     "preview": false,
     "publisher": "georgewfraser",
     "repository": {
@@ -13,7 +13,7 @@
         "url": "https://github.com/fsprojects/fsharp-language-server"
     },
     "engines": {
-        "vscode": "^1.24.0"
+        "vscode": "^1.56.2"
     },
     "categories": [
         "Programming Languages",
@@ -23,11 +23,7 @@
         "onLanguage:fsharp"
     ],
     "main": "./out/client/extension",
-    "files": [
-        "./src/FSharpLanguageServer/bin/Release/netcoreapp3.0/osx.10.11-x64/publish",
-        "./src/FSharpLanguageServer/bin/Release/netcoreapp3.0/linux-x64/publish",
-        "./src/FSharpLanguageServer/bin/Release/netcoreapp3.0/win10-x64/publish"
-    ],
+    "files": [],
     "contributes": {
         "languages": [
             {
@@ -112,13 +108,14 @@
         "ms-dotnettools.csharp"
     ],
     "dependencies": {
-        "@types/vscode": "^1.55.0",
-        "typescript": "^4.2.4",
-        "vscode-languageclient": "^4.2.1"
+        "@types/vscode": "^1.56.0",
+        "typescript": "^4.3.2",
+        "vscode-languageclient": "^7.0.0"
     },
     "devDependencies": {
         "@types/node": "^14.14.37",
-        "@types/vscode": "^1.24.0",
-        "typescript": "^4.2.4"
+        "@types/vscode": "^1.56.0",
+        "typescript": "^4.3.2",
+        "vsce": "1.91.0"
     }
 }

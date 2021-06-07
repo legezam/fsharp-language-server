@@ -4,19 +4,11 @@ open LSP.Log
 open System
 open System.Diagnostics
 open System.IO
-open System.Xml
-open System.Reflection
 open System.Reflection.Metadata
 open System.Reflection.PortableExecutable
 open System.Collections.Generic
 open FSharp.Data
 open FSharp.Data.JsonExtensions
-open LSP.Json.Ser
-open Microsoft.Build
-open Microsoft.Build.Evaluation
-open Microsoft.Build.Utilities
-open Microsoft.Build.Framework
-open Microsoft.Build.Logging
 open Buildalyzer
 
 // Other points of reference:
@@ -77,7 +69,7 @@ type private CoreRuntime = {
 type JsonValue with
     member x.GetCaseInsensitive(propertyName) =
         let mutable result: Option<JsonValue> = None
-        for (k, v) in x.Properties do
+        for k, v in x.Properties do
             if String.Equals(propertyName, k, StringComparison.OrdinalIgnoreCase ) then
                 result <- Some(v)
         result
@@ -139,11 +131,11 @@ let private parseProjectAssets(projectAssetsJson: FileInfo): ProjectAssets =
     // not be explicitly referenced elsewhere
     let findRuntimePaths(): HashSet<CoreRuntime> =
         let dotnetProcess = new Process()
-        dotnetProcess.StartInfo <- new ProcessStartInfo(FileName="dotnet",
-                                                        Arguments="--list-runtimes",
-                                                        CreateNoWindow=true,
-                                                        UseShellExecute=false,
-                                                        RedirectStandardOutput=true)
+        dotnetProcess.StartInfo <- ProcessStartInfo(FileName="dotnet",
+                                                    Arguments="--list-runtimes",
+                                                    CreateNoWindow=true,
+                                                    UseShellExecute=false,
+                                                    RedirectStandardOutput=true)
         dotnetProcess.Start() |> ignore
         dotnetProcess.WaitForExit(5000) |> ignore
         let stdoutRaw = dotnetProcess.StandardOutput.ReadToEnd()
@@ -239,7 +231,7 @@ let private parseProjectAssets(projectAssetsJson: FileInfo): ProjectAssets =
         match root?targets.[longFramework].GetCaseInsensitive(nameVersion) with
         | None ->
             dprintfn "Couldn't find %s in targets" nameVersion
-        | Some (lib) when transitiveDependencies.TryAdd(nameVersion, parent) ->
+        | Some lib when transitiveDependencies.TryAdd(nameVersion, parent) ->
             match lib.TryGetProperty("dependencies") with
             | None -> ()
             | Some(next) ->
@@ -249,7 +241,7 @@ let private parseProjectAssets(projectAssetsJson: FileInfo): ProjectAssets =
                     let version = chooseVersion(name)
                     let child = {name=name; version=version}
                     let childNameVersion = child.name + "/" + child.version
-                    if not(transitiveDependencies.ContainsKey(childNameVersion)) then
+                    if not (transitiveDependencies.ContainsKey(childNameVersion)) then
                         dprintfn "\t%s <- %s" nameVersion childNameVersion
                     findTransitiveDeps(child)
         | _ -> ()
@@ -291,7 +283,7 @@ let private parseProjectAssets(projectAssetsJson: FileInfo): ProjectAssets =
         longFramework.Split("net")
       else
         longFramework.Split("Version=v")
-    let (frameworkMajorVersion, frameworkMinorVersion) = parseVersion longFrameworkVersion
+    let frameworkMajorVersion, frameworkMinorVersion = parseVersion longFrameworkVersion
     let selectedRuntimes = Dictionary<string * int, CoreRuntime>()
     let runtimes = findRuntimePaths()
     match root?project?frameworks.[shortFramework].TryGetProperty("frameworkReferences") with
@@ -342,7 +334,7 @@ let private parseProjectAssets(projectAssetsJson: FileInfo): ProjectAssets =
             if Directory.Exists(nugetPackPath) then
                 for versionDir in Directory.GetDirectories(nugetPackPath) do
                     let version = Path.GetFileName(versionDir)
-                    let (packMajorVersion, packMinorVersion) = parseVersion version
+                    let packMajorVersion, packMinorVersion = parseVersion version
                     let versionMatch =
                         currentRuntime.majorVersion = packMajorVersion
                         && packMinorVersion >= frameworkMinorVersion
@@ -477,16 +469,16 @@ let private parseProjectAssets(projectAssetsJson: FileInfo): ProjectAssets =
         projects=projects
     }
 
-let private project(fsproj: FileInfo): ProjectAnalyzer =
-    let options = new AnalyzerManagerOptions()
+let private project(fsproj: FileInfo): IProjectAnalyzer =
+    let options = AnalyzerManagerOptions()
     options.LogWriter <- !diagnosticsLog // TODO this doesn't follow ref changes
     let manager = AnalyzerManager(options)
     manager.GetProject(fsproj.FullName)
 
-let private inferTargetFramework(fsproj: FileInfo): AnalyzerResult =
+let private inferTargetFramework(fsproj: FileInfo): IAnalyzerResult =
     let builds = project(fsproj).Build()
     // TODO get target framework from project.assets.json
-    let mutable chosen: AnalyzerResult option = None
+    let mutable chosen: IAnalyzerResult option = None
     for shortFramework, _ in frameworkPreference do
         if chosen.IsNone then
             for build in builds do
@@ -511,7 +503,7 @@ let private projectTarget(csproj: FileInfo) =
     else
         placeholderTarget
 
-let private absoluteIncludePath(fsproj: FileInfo, i: ProjectItem) =
+let private absoluteIncludePath(fsproj: FileInfo, i: IProjectItem) =
     let relativePath = i.ItemSpec.Replace('\\', Path.DirectorySeparatorChar)
     let absolutePath = Path.Combine(fsproj.DirectoryName, relativePath)
     let normalizePath = Path.GetFullPath(absolutePath)
