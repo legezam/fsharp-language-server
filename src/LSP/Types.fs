@@ -109,6 +109,7 @@ type DidChangeWatchedFilesParams = {
     changes: FileEvent list
 }
     
+[<RequireQualifiedAccess>]
 type Notification = 
 | Initialized
 | DidChangeConfiguration of DidChangeConfigurationParams
@@ -405,6 +406,7 @@ type ExecuteCommandParams = {
     arguments: JsonValue list
 }
 
+[<RequireQualifiedAccess>]
 type Request = 
 | Initialize of InitializeParams
 | Shutdown

@@ -21,23 +21,31 @@ open FSharpLanguageServer.SyntaxTreeOps
 
 /// Represents an item to be displayed in the navigation bar
 [<Sealed>]
-type NavigationItem(uniqueName: string, name: string, kind: FSharpNavigationDeclarationItemKind, glyph: FSharpGlyph, range: Text.range,
-                                     bodyRange: Text.range, singleTopLevel: bool, enclosingEntityKind: FSharpEnclosingEntityKind, isAbstract: bool, access: SynAccess option) =
+type NavigationItem(uniqueName: string, 
+                    name: string, 
+                    kind: FSharpNavigationDeclarationItemKind, 
+                    glyph: FSharpGlyph, 
+                    range: Text.range,
+                    bodyRange: Text.range, 
+                    singleTopLevel: bool, 
+                    enclosingEntityKind: FSharpEnclosingEntityKind, 
+                    isAbstract: bool, 
+                    access: SynAccess option) =
 
-    member x.bodyRange = bodyRange
-    member x.UniqueName = uniqueName
-    member x.Name = name
-    member x.Glyph = glyph
-    member x.Kind = kind
-    member x.Range = range
-    member x.BodyRange = bodyRange
-    member x.IsSingleTopLevel = singleTopLevel
-    member x.FSharpEnclosingEntityKind = enclosingEntityKind
-    member x.IsAbstract = isAbstract
+    member _.bodyRange = bodyRange
+    member _.UniqueName = uniqueName
+    member _.Name = name
+    member _.Glyph = glyph
+    member _.Kind = kind
+    member _.Range = range
+    member _.BodyRange = bodyRange
+    member _.IsSingleTopLevel = singleTopLevel
+    member _.FSharpEnclosingEntityKind = enclosingEntityKind
+    member _.IsAbstract = isAbstract
 
-    member x.Access = access
+    member _.Access = access
 
-    member x.WithUniqueName(uniqueName: string) =
+    member _.WithUniqueName(uniqueName: string) =
       NavigationItem(uniqueName, name, kind, glyph, range, bodyRange, singleTopLevel, enclosingEntityKind, isAbstract, access)
     static member Create(name: string, kind, glyph: FSharpGlyph, range: Text.range, bodyRange: Text.range, singleTopLevel: bool, enclosingEntityKind, isAbstract, access: SynAccess option) =
       NavigationItem("", name, kind, glyph, range, bodyRange, singleTopLevel, enclosingEntityKind, isAbstract, access)
@@ -53,11 +61,17 @@ type FSharpNavigationTopLevelDeclaration =
 /// all the members and currently selected indices. First level correspond to
 /// types & modules and second level are methods etc.
 [<Sealed>]
-type FSharpNavigationItems(declarations:FSharpNavigationTopLevelDeclaration[]) =
-    member x.Declarations = declarations
+type FSharpNavigationItems(declarations: FSharpNavigationTopLevelDeclaration[]) =
+    member _.Declarations = declarations
 
 module Navigation =
-    let unionRangesChecked r1 r2 = if r1 = Text.range.Zero then r2 elif r2 = Text.range.Zero then r1 else unionRanges r1 r2
+    let unionRangesChecked (r1: Text.Range) (r2: Text.Range): Text.Range = 
+        if r1 = Text.range.Zero then 
+            r2 
+        else if r2 = Text.range.Zero then 
+            r1 
+        else 
+            unionRanges r1 r2
 
     let rangeOfDecls2 f decls =
       match (decls |> List.map (f >> (fun (d: NavigationItem) -> d.bodyRange))) with

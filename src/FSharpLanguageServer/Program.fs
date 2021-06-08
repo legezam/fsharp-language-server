@@ -93,10 +93,10 @@ let private findDeclarations(parse: FSharpParseFileResults) =
         | Some(SyntaxTree.ParsedInput.ImplFile(SyntaxTree.ParsedImplFileInput(_, _, _, _, _, modules, _))) ->
             Navigation.getNavigationFromImplFile(modules).Declarations
         | _ -> [||]
-    [ for i in items do
-        yield i.Declaration, None
-        for n in i.Nested do
-            yield n, Some(i.Declaration) ]
+    [ for item in items do
+        yield item.Declaration, None
+        for nestedItem in item.Nested do
+            yield nestedItem, Some(item.Declaration) ]
 
 let private findSignatureDeclarations(parse: FSharpParseFileResults) =
     match parse.ParseTree with
@@ -341,6 +341,7 @@ type Server(client: ILanguageClient) =
         async {
             let file = FileInfo(textDocument.uri.LocalPath)
             let! c = checkOpenFile(file, true, false)
+            
             let line = lineContent(file, position.line)
             let maybeId = QuickParse.GetCompleteIdentifierIsland false line (position.character)
             match c, maybeId with
@@ -350,7 +351,7 @@ type Server(client: ILanguageClient) =
             | _, None ->
                 dprintfn "No identifier at %d in line '%s'" position.character line
                 return None
-            | Ok(_, checkResult), Some(id, endOfIdentifier, _) ->
+            | Ok(foo, checkResult), Some(id, endOfIdentifier, _) ->
                 dprintfn "Looking at symbol %s" id
                 let names = List.ofArray(id.Split('.'))
                 let maybeSymbol = checkResult.GetSymbolUseAtLocation(position.line+1, endOfIdentifier, line, names)

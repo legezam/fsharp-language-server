@@ -122,15 +122,15 @@ let parseDidChangeWatchedFilesParams = deserializerFactory<DidChangeWatchedFiles
 
 let parseNotification(method: string, maybeBody: JsonValue option): Notification = 
     match method, maybeBody with 
-    | "initialized", _ -> Initialized
+    | "initialized", _ -> Notification.Initialized
     | "exit", _ -> raise(Exception"exit message should terminated stream before reaching this point") 
-    | "workspace/didChangeConfiguration", Some json -> DidChangeConfiguration (parseDidChangeConfigurationParams json)
-    | "textDocument/didOpen", Some json -> DidOpenTextDocument (parseDidOpenTextDocumentParams json)
-    | "textDocument/didChange", Some json -> DidChangeTextDocument (parseDidChangeTextDocumentParams json)
-    | "textDocument/willSave", Some json -> WillSaveTextDocument (parseWillSaveTextDocumentParams json)
-    | "textDocument/didSave", Some json -> DidSaveTextDocument (parseDidSaveTextDocumentParams json)
-    | "textDocument/didClose", Some json -> DidCloseTextDocument (parseDidCloseTextDocumentParams json)
-    | "workspace/didChangeWatchedFiles", Some json -> DidChangeWatchedFiles (parseDidChangeWatchedFilesParams json)
+    | "workspace/didChangeConfiguration", Some json -> Notification.DidChangeConfiguration (parseDidChangeConfigurationParams json)
+    | "textDocument/didOpen", Some json -> Notification.DidOpenTextDocument (parseDidOpenTextDocumentParams json)
+    | "textDocument/didChange", Some json -> Notification.DidChangeTextDocument (parseDidChangeTextDocumentParams json)
+    | "textDocument/willSave", Some json -> Notification.WillSaveTextDocument (parseWillSaveTextDocumentParams json)
+    | "textDocument/didSave", Some json -> Notification.DidSaveTextDocument (parseDidSaveTextDocumentParams json)
+    | "textDocument/didClose", Some json -> Notification.DidCloseTextDocument (parseDidCloseTextDocumentParams json)
+    | "workspace/didChangeWatchedFiles", Some json -> Notification.DidChangeWatchedFiles (parseDidChangeWatchedFilesParams json)
     | _, None -> 
         dprintfn "%s is not a known notification, or it is expected to contain a body" method
         OtherNotification method
@@ -232,12 +232,10 @@ let private parseDocumentFormattingParamsRaw(raw: DocumentFormattingParamsRaw): 
     }
 
 let private parseDocumentRangeFormattingParamsRaw(raw: DocumentRangeFormattingParamsRaw): DocumentRangeFormattingParams = 
-    {
-        textDocument = raw.textDocument 
-        options = parseDocumentFormattingOptions raw.options
-        optionsMap = parseDocumentFormattingOptionsMap raw.options
-        range = raw.range
-    }
+    { DocumentRangeFormattingParams.textDocument = raw.textDocument 
+      options = parseDocumentFormattingOptions raw.options
+      optionsMap = parseDocumentFormattingOptionsMap raw.options
+      range = raw.range }
 
 let private parseDocumentOnTypeFormattingParamsRaw(raw: DocumentOnTypeFormattingParamsRaw): DocumentOnTypeFormattingParams = 
     {
@@ -262,27 +260,27 @@ let parseDidChangeWorkspaceFoldersParams = deserializerFactory<DidChangeWorkspac
 
 let parseRequest(method: string, json: JsonValue): Request = 
     match method with 
-    | "initialize" -> Initialize(parseInitialize json)
-    | "shutdown" -> Shutdown 
-    | "textDocument/willSaveWaitUntil" -> WillSaveWaitUntilTextDocument(parseWillSaveTextDocumentParams json)
-    | "textDocument/completion" -> Completion(parseTextDocumentPositionParams json)
-    | "textDocument/hover" -> Hover(parseTextDocumentPositionParams json)
-    | "completionItem/resolve" -> ResolveCompletionItem(parseCompletionItem json)
-    | "textDocument/signatureHelp" -> SignatureHelp(parseTextDocumentPositionParams json)
-    | "textDocument/definition" -> GotoDefinition(parseTextDocumentPositionParams json)
-    | "textDocument/references" -> FindReferences(parseReferenceParams json)
-    | "textDocument/documentHighlight" -> DocumentHighlight(parseTextDocumentPositionParams json)
-    | "textDocument/documentSymbol" -> DocumentSymbols(parseDocumentSymbolParams json)
-    | "workspace/symbol" -> WorkspaceSymbols(parseWorkspaceSymbolParams json)
-    | "textDocument/codeAction" -> CodeActions(parseCodeActionParams json)
-    | "textDocument/codeLens" -> CodeLens(parseCodeLensParams json)
-    | "codeLens/resolve" -> ResolveCodeLens(parseCodeLens json)
-    | "textDocument/documentLink" -> DocumentLink(parseDocumentLinkParams json)
-    | "documentLink/resolve" -> ResolveDocumentLink(parseDocumentLink json)
-    | "textDocument/formatting" -> DocumentFormatting(parseDocumentFormattingParams json)
-    | "textDocument/rangeFormatting" -> DocumentRangeFormatting(parseDocumentRangeFormattingParams json)
-    | "textDocument/onTypeFormatting" -> DocumentOnTypeFormatting(parseDocumentOnTypeFormattingParams json)
-    | "textDocument/rename" -> Rename(parseRenameParams json)
-    | "workspace/executeCommand" -> ExecuteCommand(parseExecuteCommandParams json)
-    | "workspace/didChangeWorkspaceFolders" -> DidChangeWorkspaceFolders(parseDidChangeWorkspaceFoldersParams json)
+    | "initialize" -> Request.Initialize(parseInitialize json)
+    | "shutdown" -> Request.Shutdown 
+    | "textDocument/willSaveWaitUntil" -> Request.WillSaveWaitUntilTextDocument(parseWillSaveTextDocumentParams json)
+    | "textDocument/completion" -> Request.Completion(parseTextDocumentPositionParams json)
+    | "textDocument/hover" -> Request.Hover(parseTextDocumentPositionParams json)
+    | "completionItem/resolve" -> Request.ResolveCompletionItem(parseCompletionItem json)
+    | "textDocument/signatureHelp" -> Request.SignatureHelp(parseTextDocumentPositionParams json)
+    | "textDocument/definition" -> Request.GotoDefinition(parseTextDocumentPositionParams json)
+    | "textDocument/references" -> Request.FindReferences(parseReferenceParams json)
+    | "textDocument/documentHighlight" -> Request.DocumentHighlight(parseTextDocumentPositionParams json)
+    | "textDocument/documentSymbol" -> Request.DocumentSymbols(parseDocumentSymbolParams json)
+    | "workspace/symbol" -> Request.WorkspaceSymbols(parseWorkspaceSymbolParams json)
+    | "textDocument/codeAction" -> Request.CodeActions(parseCodeActionParams json)
+    | "textDocument/codeLens" -> Request.CodeLens(parseCodeLensParams json)
+    | "codeLens/resolve" -> Request.ResolveCodeLens(parseCodeLens json)
+    | "textDocument/documentLink" -> Request.DocumentLink(parseDocumentLinkParams json)
+    | "documentLink/resolve" -> Request.ResolveDocumentLink(parseDocumentLink json)
+    | "textDocument/formatting" -> Request.DocumentFormatting(parseDocumentFormattingParams json)
+    | "textDocument/rangeFormatting" -> Request.DocumentRangeFormatting(parseDocumentRangeFormattingParams json)
+    | "textDocument/onTypeFormatting" -> Request.DocumentOnTypeFormatting(parseDocumentOnTypeFormattingParams json)
+    | "textDocument/rename" -> Request.Rename(parseRenameParams json)
+    | "workspace/executeCommand" -> Request.ExecuteCommand(parseExecuteCommandParams json)
+    | "workspace/didChangeWorkspaceFolders" -> Request.DidChangeWorkspaceFolders(parseDidChangeWorkspaceFoldersParams json)
     | _ -> raise(Exception(sprintf "Unexpected request method %s" method))

@@ -10,7 +10,7 @@ open FSharp.Data
 open Types 
 open LSP.Json.Ser
 open JsonExtensions
-
+open System.Collections.Concurrent
 let private jsonWriteOptions = 
     { defaultJsonWriteOptions with 
         customWriters = 
@@ -109,83 +109,82 @@ type private PendingTask =
 
 let connect(serverFactory: ILanguageClient -> ILanguageServer, receive: BinaryReader, send: BinaryWriter) = 
     let server = serverFactory(RealClient(send))
-    let processRequest(request: Request): Async<string option> = 
-        match request with 
-        | Initialize(p) -> 
+    let processRequest: Request -> Async<string option> = function
+        | Request.Initialize(p) -> 
             server.Initialize(p) |> thenMap serializeInitializeResult |> thenSome
-        | WillSaveWaitUntilTextDocument(p) -> 
+        | Request.WillSaveWaitUntilTextDocument(p) -> 
             server.WillSaveWaitUntilTextDocument(p) |> thenMap serializeTextEditList |> thenSome
-        | Completion(p) -> 
+        | Request.Completion(p) -> 
             server.Completion(p) |> thenMap serializeCompletionListOption
-        | Hover(p) -> 
+        | Request.Hover(p) -> 
             server.Hover(p) |> thenMap serializeHoverOption |> thenMap (Option.defaultValue "null") |> thenSome
-        | ResolveCompletionItem(p) -> 
+        | Request.ResolveCompletionItem(p) -> 
             server.ResolveCompletionItem(p) |> thenMap serializeCompletionItem |> thenSome 
-        | SignatureHelp(p) -> 
+        | Request.SignatureHelp(p) -> 
             server.SignatureHelp(p) |> thenMap serializeSignatureHelpOption |> thenMap (Option.defaultValue "null") |> thenSome
-        | GotoDefinition(p) -> 
+        | Request.GotoDefinition(p) -> 
             server.GotoDefinition(p) |> thenMap serializeLocationList |> thenSome
-        | FindReferences(p) -> 
+        | Request.FindReferences(p) -> 
             server.FindReferences(p) |> thenMap serializeLocationList |> thenSome
-        | DocumentHighlight(p) -> 
+        | Request.DocumentHighlight(p) -> 
             server.DocumentHighlight(p) |> thenMap serializeDocumentHighlightList |> thenSome
-        | DocumentSymbols(p) -> 
+        | Request.DocumentSymbols(p) -> 
             server.DocumentSymbols(p) |> thenMap serializeSymbolInformationList |> thenSome
-        | WorkspaceSymbols(p) -> 
+        | Request.WorkspaceSymbols(p) -> 
             server.WorkspaceSymbols(p) |> thenMap serializeSymbolInformationList |> thenSome
-        | CodeActions(p) -> 
+        | Request.CodeActions(p) -> 
             server.CodeActions(p) |> thenMap serializeCommandList |> thenSome
-        | CodeLens(p) -> 
+        | Request.CodeLens(p) -> 
             server.CodeLens(p) |> thenMap serializeCodeLensList |> thenSome
-        | ResolveCodeLens(p) -> 
+        | Request.ResolveCodeLens(p) -> 
             server.ResolveCodeLens(p) |> thenMap serializeCodeLens |> thenSome
-        | DocumentLink(p) -> 
+        | Request.DocumentLink(p) -> 
             server.DocumentLink(p) |> thenMap serializeDocumentLinkList |> thenSome
-        | ResolveDocumentLink(p) -> 
+        | Request.ResolveDocumentLink(p) -> 
             server.ResolveDocumentLink(p) |> thenMap serializeDocumentLink |> thenSome
-        | DocumentFormatting(p) -> 
+        | Request.DocumentFormatting(p) -> 
             server.DocumentFormatting(p) |> thenMap serializeTextEditList |> thenSome
-        | DocumentRangeFormatting(p) -> 
+        | Request.DocumentRangeFormatting(p) -> 
             server.DocumentRangeFormatting(p) |> thenMap serializeTextEditList |> thenSome
-        | DocumentOnTypeFormatting(p) -> 
+        | Request.DocumentOnTypeFormatting(p) -> 
             server.DocumentOnTypeFormatting(p) |> thenMap serializeTextEditList |> thenSome
-        | Rename(p) -> 
+        | Request.Rename(p) -> 
             server.Rename(p) |> thenMap serializeWorkspaceEdit |> thenSome
-        | ExecuteCommand(p) -> 
+        | Request.ExecuteCommand(p) -> 
             server.ExecuteCommand(p) |> thenNone
-        | DidChangeWorkspaceFolders(p) ->
+        | Request.DidChangeWorkspaceFolders(p) ->
             server.DidChangeWorkspaceFolders(p) |> thenNone
-        | Shutdown ->
+        | Request.Shutdown ->
             server.Shutdown() |> thenNone
-    let processNotification(n: Notification) = 
-        match n with 
-        | Initialized ->
+
+    let processNotification: Notification -> Async<unit> =  function
+        | Notification.Initialized ->
             server.Initialized()
-        | DidChangeConfiguration(p) -> 
+        | Notification.DidChangeConfiguration(p) -> 
             server.DidChangeConfiguration(p)
-        | DidOpenTextDocument(p) -> 
+        | Notification.DidOpenTextDocument(p) -> 
             server.DidOpenTextDocument(p)
-        | DidChangeTextDocument(p) -> 
+        | Notification.DidChangeTextDocument(p) -> 
             server.DidChangeTextDocument(p)
-        | WillSaveTextDocument(p) -> 
+        | Notification.WillSaveTextDocument(p) -> 
             server.WillSaveTextDocument(p)
-        | DidSaveTextDocument(p) -> 
+        | Notification.DidSaveTextDocument(p) -> 
             server.DidSaveTextDocument(p)
-        | DidCloseTextDocument(p) -> 
+        | Notification.DidCloseTextDocument(p) -> 
             server.DidCloseTextDocument(p)
-        | DidChangeWatchedFiles(p) -> 
+        | Notification.DidChangeWatchedFiles(p) -> 
             server.DidChangeWatchedFiles(p)
-        | OtherNotification(_) ->
+        | Notification.OtherNotification(_) ->
             async { () }
     // Read messages and process cancellations on a separate thread
-    let pendingRequests = new System.Collections.Concurrent.ConcurrentDictionary<int, CancellationTokenSource>()
-    let processQueue = new System.Collections.Concurrent.BlockingCollection<PendingTask>(10)
+    let pendingRequests = new ConcurrentDictionary<int, CancellationTokenSource>()
+    let processQueue = new BlockingCollection<PendingTask>(10)
     Thread(fun () -> 
         try
             // Read all messages on the main thread
-            for m in readMessages(receive) do 
+            for message in readMessages(receive) do 
                 // Process cancellations immediately
-                match m with 
+                match message with 
                 | Parser.NotificationMessage("$/cancelRequest", Some json) -> 
                     let id = json?id.AsInteger()
                     let stillRunning, pendingRequest = pendingRequests.TryGetValue(id)
